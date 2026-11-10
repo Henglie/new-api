@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Search } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -81,6 +81,18 @@ export function UpstreamRatioSyncTable(props: UpstreamRatioSyncTableProps) {
   const [search, setSearch] = useState('')
   const [showUnchanged, setShowUnchanged] = useState(false)
   const [kind, setKind] = useState('__all__')
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  })
+  const ensurePageInRange = useCallback((pageCount: number) => {
+    setPagination((previous) => {
+      const lastPageIndex = Math.max(0, pageCount - 1)
+      return previous.pageIndex > lastPageIndex
+        ? { ...previous, pageIndex: lastPageIndex }
+        : previous
+    })
+  }, [])
   const debouncedSearch = useDebounce(search, 250)
   const rows = useMemo(
     () =>
@@ -163,7 +175,12 @@ export function UpstreamRatioSyncTable(props: UpstreamRatioSyncTableProps) {
     data: filteredRows,
     columns,
     getRowId: (row) => row.model,
-    initialPagination: { pageIndex: 0, pageSize: 10 },
+    pagination,
+    onPaginationChange: setPagination,
+    ensurePageInRange,
+    // Selecting a price rebuilds the filtered rows; keep the user on the page
+    // where they are picking instead of resetting to the first one.
+    autoResetPageIndex: false,
     withFilteredRowModel: false,
     withSortedRowModel: true,
     withFacetedRowModel: false,
